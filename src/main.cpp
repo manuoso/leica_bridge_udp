@@ -12,12 +12,12 @@
 int main(int _argc, char* _argv[]) {
 
 	ros::init(_argc, _argv, "leica_bridge");
-    std::thread spinThread = std::thread([&](){
-        ros::spin();
-    });
+    //std::thread spinThread = std::thread([&](){
+    //    ros::spin();
+    //});
     
-	//ros::AsyncSpinner spinner(4); // Use 4 threads
-	//spinner.start();
+	ros::AsyncSpinner spinner(4); // Use 4 threads
+	spinner.start();
 
     StateMachine stateMachine;
     if(!stateMachine.init(_argc, _argv)){

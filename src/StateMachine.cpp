@@ -46,6 +46,10 @@ bool StateMachine::run() {
         }else{
             LogManager::get()->warning("WARNING! exceeded timeout. Delay: " + std::to_string(delay.count()), true);
         }
+
+        if((mData.x == 0) && (mData.y == 0) && (mData.z == 0) && (mData.timestamp == 0)){
+            LogManager::get()->warning("WARNING! Prism lost be careful", true);
+        }
 		
         mSecureLeica.lock();
         mSend.header.stamp = ros::Time::now();
@@ -61,9 +65,7 @@ bool StateMachine::run() {
 
         mPub.publish(mSend); 
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
-
     }
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -103,7 +105,7 @@ void StateMachine::leicaListenCallback(){
 
 		    datos data_recv;
 		    memcpy(&data_recv, &recv_buf[0], sizeof(datos));
-            LogManager::get()->status("Position Prism: " + std::to_string(data_recv.x) + " , " + std::to_string(data_recv.y) + " , " + std::to_string(data_recv.z) + " , " + std::to_string(data_recv.timestamp), false);
+            LogManager::get()->message(std::to_string(data_recv.x) + "," + std::to_string(data_recv.y) + "," + std::to_string(data_recv.z) + "," + std::to_string(data_recv.timestamp), "PRISM_RECEIVED", false);
 
             mSecureLeica.lock();
             mData = data_recv;
