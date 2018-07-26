@@ -16,13 +16,14 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <std_msgs/String.h>
+#include <math.h>
 
 using boost::asio::ip::udp;
 
 class StateMachine
 {
     public:
-        struct datos{
+        struct data{
             float x;
             float y;
             float z;
@@ -41,7 +42,7 @@ class StateMachine
         std::string mIP;
         int mPort;
 
-        datos mData;
+        data mData;
         geometry_msgs::PoseStamped mSend;
         ros::Publisher mPub;
         std::chrono::high_resolution_clock::time_point mLeicaTime;
@@ -49,4 +50,7 @@ class StateMachine
         bool mFinishThreadListen = true;
         std::thread mLeicaListeningThread;
         std::mutex mSecureLeica;
+
+        int mCoord = 0;
+        float mXOffset = 0.0, mYOffset = 0.0, mZOffset = 0.0;
 };
