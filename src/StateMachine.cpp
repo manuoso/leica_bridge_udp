@@ -123,7 +123,10 @@ void StateMachine::leicaListenCallback(){
 
             mSecureLeica.lock();
             if(mCoord == 1){
-                mData = data_recv;
+                mData.x = data_recv.x;
+                mData.y = data_recv.y;
+                mData.z = data_recv.z;
+                mData.timestamp = data_recv.timestamp;
             }else if(mCoord == 2){
                 mData.x = mXOffset + data_recv.z*sin(data_recv.x)*sin(data_recv.y);
                 mData.y = mYOffset + data_recv.z*cos(data_recv.x)*sin(data_recv.y);
