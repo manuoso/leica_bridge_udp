@@ -14,18 +14,6 @@ using boost::asio::ip::udp;
 bool StateMachine::init(int _argc, char**_argv) {
     LogManager::init("LeicaBridge_" + std::to_string(time(NULL)));
 
-    std::cout << "Type of coordinates you want to receive: " << std::endl;
-    std::cout << "- 1 Cartesian coordinates" << std::endl;
-    std::cout << "- 2 Spherical coordinates" << std::endl;
-    std::cin >> coord_;
-
-    if(coord_ == 2){
-        xOffset_ = 0.0;
-        yOffset_ = 0.0;
-        zOffset_ = 1.3;
-        std::cout << "Offsets by default: X -> " << xOffset_ << " Y-> " << yOffset_ << " Z-> " << zOffset_ << std::endl;
-    }
-
     std::cout << "Enter IP of server to connect: ";	
 	std::cin >> ip_;
     LogManager::get()->status("Server IP: " + ip_, false);
@@ -62,18 +50,14 @@ bool StateMachine::run() {
     
     ros::Rate rate(20);
 
-    while(ros::ok()){
-					
+    while(ros::ok()){	
 		auto end = std::chrono::high_resolution_clock::now();
 		auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(end - leicaTime_);
+
         if(delay.count() < 50){
             LogManager::get()->status("Reasonable delay. Delay: " + std::to_string(delay.count()), true);
         }else{
             LogManager::get()->warning("WARNING! exceeded timeout. Delay: " + std::to_string(delay.count()), true);
-        }
-
-        if((data_.x == 0) && (data_.y == 0) && (data_.z == 0) && (data_.timestamp == 0)){
-            LogManager::get()->warning("WARNING! Prism lost be careful", true);
         }
 		
         if(typeTopic_ == 1){
@@ -93,7 +77,6 @@ bool StateMachine::run() {
         }else{
             lockLeica_.lock();
             sendPoint_.header.stamp = ros::Time::now();
-            sendPoint_.header.frame_id = "fcu";
             sendPoint_.point.x = data_.x; 
             sendPoint_.point.y = data_.y; 
             sendPoint_.point.z = data_.z; 
@@ -148,23 +131,27 @@ void StateMachine::leicaListenCallback(){
 		    memcpy(&data_recv, &recv_buf[0], sizeof(data));
             LogManager::get()->message(std::to_string(data_recv.x) + "," + std::to_string(data_recv.y) + "," + std::to_string(data_recv.z) + "," + std::to_string(data_recv.timestamp), "PRISM_RECEIVED", false);
 
-            if(coord_ == 1){
+            if((data_recv.x == 0) && (data_recv.y == 0) && (data_recv.z == 0) && (data_recv.timestamp == 0)){
+                LogManager::get()->warning("WARNING! Prism lost be careful", true);
+                lockLeica_.lock();
+                data_.x = latestData_.x;
+                data_.y = latestData_.y;
+                data_.z = latestData_.z;
+                data_.timestamp = latestData_.timestamp;
+                lockLeica_.unlock();
+            }else{
                 lockLeica_.lock();
                 data_.x = data_recv.x;
                 data_.y = data_recv.y;
                 data_.z = data_recv.z;
                 data_.timestamp = data_recv.timestamp;
                 lockLeica_.unlock();
-            }else if(coord_ == 2){
-                lockLeica_.lock();
-                data_.x = xOffset_ + data_recv.z*sin(data_recv.x)*sin(data_recv.y);
-                data_.y = yOffset_ + data_recv.z*cos(data_recv.x)*sin(data_recv.y);
-                data_.z = zOffset_ + data_recv.z*cos(data_recv.y);
-                data_.timestamp = data_recv.timestamp;
-                lockLeica_.unlock();
-            }else{
-                std::cout << "Unrecognized type of coordinates!" << std::endl;
             }
+
+            latestData_.x = data_recv.x;
+            latestData_.y = data_recv.y;
+            latestData_.z = data_recv.z;
+            latestData_.timestamp = data_recv.timestamp;
 	    }
         catch (std::exception& e)
 	    {

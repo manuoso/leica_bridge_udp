@@ -44,7 +44,7 @@ class StateMachine
         std::string ip_;
         int port_;
 
-        data data_;
+        data data_, latestData_;
         int typeTopic_;
         geometry_msgs::PointStamped sendPoint_;
         geometry_msgs::PoseStamped sendPose_;
@@ -55,6 +55,5 @@ class StateMachine
         std::thread leicaListeningThread_;
         std::mutex lockLeica_;
 
-        int coord_ = 0;
         float xOffset_ = 0.0, yOffset_ = 0.0, zOffset_ = 0.0;
 };
