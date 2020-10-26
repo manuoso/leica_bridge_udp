@@ -6,17 +6,19 @@
 //															   //
 /////////////////////////////////////////////////////////////////
 
-#include <ros/ros.h>
-#include "LogManager.h"
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <math.h>
+
 #include <ros/ros.h>
+#include "geometry_msgs/PointStamped.h"
 #include "geometry_msgs/PoseStamped.h"
+
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
-#include <std_msgs/String.h>
-#include <math.h>
+
+#include "LogManager.h"
 
 using boost::asio::ip::udp;
 
@@ -38,19 +40,21 @@ class StateMachine
         void leicaListenCallback();
 
     private:
-        udp::socket *mSocket;
-        std::string mIP;
-        int mPort;
+        udp::socket *socket_;
+        std::string ip_;
+        int port_;
 
-        data mData;
-        geometry_msgs::PoseStamped mSend;
-        ros::Publisher mPub;
-        std::chrono::high_resolution_clock::time_point mLeicaTime;
+        data data_;
+        int typeTopic_;
+        geometry_msgs::PointStamped sendPoint_;
+        geometry_msgs::PoseStamped sendPose_;
+        ros::Publisher pub_;
+        std::chrono::high_resolution_clock::time_point leicaTime_;
 
-        bool mFinishThreadListen = true;
-        std::thread mLeicaListeningThread;
-        std::mutex mSecureLeica;
+        bool finishThreadListen_ = true;
+        std::thread leicaListeningThread_;
+        std::mutex lockLeica_;
 
-        int mCoord = 0;
-        float mXOffset = 0.0, mYOffset = 0.0, mZOffset = 0.0;
+        int coord_ = 0;
+        float xOffset_ = 0.0, yOffset_ = 0.0, zOffset_ = 0.0;
 };
