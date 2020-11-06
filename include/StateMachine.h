@@ -11,6 +11,9 @@
 #include <thread>
 #include <math.h>
 
+#include <Eigen/Eigen>
+#include <rapidjson/document.h>
+
 #include <ros/ros.h>
 #include "geometry_msgs/PointStamped.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -38,6 +41,9 @@ class StateMachine
     private:
         bool initSocket(std::string _ip, int _port);
         void leicaListenCallback();
+        
+        /// Utils
+        float deg2Rad(float _deg);
 
     private:
         udp::socket *socket_;
@@ -56,4 +62,7 @@ class StateMachine
         std::mutex lockLeica_;
 
         float xOffset_ = 0.0, yOffset_ = 0.0, zOffset_ = 0.0;
+        float xRot_ = 0.0, yRot_ = 0.0, zRot_ = 0.0;
+
+        Eigen::Matrix4f matTc_;
 };

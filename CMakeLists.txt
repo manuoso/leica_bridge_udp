@@ -42,6 +42,17 @@ catkin_package(
   	CATKIN_DEPENDS roscpp std_msgs geometry_msgs
 )
 
+## Load Eigen
+find_package(Eigen3 REQUIRED)
+if(${Eigen3_FOUND})
+	MESSAGE( STATUS "Eigen FOUND")
+endif()
+
+find_package(RapidJSON REQUIRED)
+if(${RapidJSON_FOUND})
+	MESSAGE( STATUS "RapidJSON FOUND")
+endif()
+
 ## Loading boost
 if(WIN32)
 	set(Boost_USE_STATIC_LIBS ON)
@@ -64,6 +75,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src ${PR
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${Boost_LIBRARIES})
+
+target_include_directories(${PROJECT_NAME} PUBLIC "/usr/include/eigen3")
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDJSON_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${RAPIDJSON_LIBRARIES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${catkin_LIBRARIES})

@@ -1,0 +1,12 @@
+{	
+	"ip":"10.42.0.66",
+	"port":8000,
+	"topic":"/leica",
+	"typeTopic":2,
+	"offsetX":0.0,
+	"offsetY":0.0,
+	"offsetZ":0.0,
+	"rotX":0.0,
+	"rotY":0.0,
+	"rotZ":0.0
+}

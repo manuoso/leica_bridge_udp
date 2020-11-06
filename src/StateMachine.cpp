@@ -14,24 +14,50 @@ using boost::asio::ip::udp;
 bool StateMachine::init(int _argc, char**_argv) {
     LogManager::init("LeicaBridge_" + std::to_string(time(NULL)));
 
-    std::cout << "Enter IP of server to connect: ";	
-	std::cin >> ip_;
+    std::ifstream rawFile("src/leica_bridge_udp/config/config.json");
+    if (!rawFile.is_open()) {
+        std::cout << "Error opening config file" << std::endl;
+        return false;
+    }
+
+    std::stringstream strStream;
+    strStream << rawFile.rdbuf();
+    std::string json = strStream.str(); 
+
+    rapidjson::Document configFile;
+    if(configFile.Parse(json.c_str()).HasParseError()){
+        std::cout << "Error parsing json" << std::endl;
+        return false;
+    }
+
+    ip_ = configFile["ip"].GetString();
     LogManager::get()->status("Server IP: " + ip_, false);
 
-	std::cout << "Enter PORT of server to connect: ";
-	std::cin >> port_;
+    port_ = configFile["port"].GetInt();
     LogManager::get()->status("Server Port: " + std::to_string(port_), false);
+    
+    std::string topic = configFile["topic"].GetString();
+    LogManager::get()->status("Topic name: " + topic, false);
+    
+    typeTopic_ = configFile["typeTopic"].GetInt();
+
+    xOffset_ = configFile["offsetX"].GetDouble();
+    yOffset_ = configFile["offsetY"].GetDouble();
+    zOffset_ = configFile["offsetZ"].GetDouble();
+
+    xRot_ = configFile["rotX"].GetDouble();
+    yRot_ = configFile["rotY"].GetDouble();
+    zRot_ = configFile["rotZ"].GetDouble();
+    
+    Eigen::Vector3f cTmat(xOffset_, yOffset_, zOffset_);
+
+    Eigen::Matrix3f cRmat = Eigen::Matrix3f::Identity();   
+    matTc_.setIdentity();  
+    matTc_.block<3,3>(0,0) = cRmat;
+    matTc_.block<3,1>(0,3) = cTmat;
 
     initSocket(ip_, port_);
     
-    std::string topic;
-    std::cout << "Enter TOPIC to publish: ";	
-	std::cin >> topic;
-    LogManager::get()->status("Topic name: " + topic, false);
-
-    std::cout << "Enter Type of topic (1-> PoseStamped, Other number PointStamped): ";	
-	std::cin >> typeTopic_;
-
     ros::NodeHandle n;
     if(typeTopic_ == 1){
         pub_ = n.advertise<geometry_msgs::PoseStamped>(topic.c_str(), 1);
@@ -60,27 +86,42 @@ bool StateMachine::run() {
             LogManager::get()->warning("WARNING! exceeded timeout. Delay: " + std::to_string(delay.count()), true);
         }
 		
+        lockLeica_.lock();
+        Eigen::Vector4f normPosition(data_.x, data_.y, data_.z, 1);
+        lockLeica_.unlock();
+
+        // Transform position from camera frame to UAV frame
+        Eigen::Vector4f rotPosition;
+        rotPosition = matTc_ * normPosition;
+
+        Eigen::Vector3f currPosition = Eigen::Vector3f(rotPosition[0] , rotPosition[1] , rotPosition[2]);
+
+        Eigen::Matrix3f rot = Eigen::AngleAxisf(deg2Rad(xRot_), Eigen::Vector3f::UnitX()).matrix();
+        currPosition = rot * currPosition;
+
+        rot = Eigen::AngleAxisf(deg2Rad(yRot_), Eigen::Vector3f::UnitY()).matrix();
+        currPosition = rot * currPosition;
+
+        rot = Eigen::AngleAxisf(deg2Rad(zRot_), Eigen::Vector3f::UnitZ()).matrix();
+        currPosition = rot * currPosition;
+
         if(typeTopic_ == 1){
-            lockLeica_.lock();
             sendPose_.header.stamp = ros::Time::now();
             sendPose_.header.frame_id = "fcu";
-            sendPose_.pose.position.x = data_.x; 
-            sendPose_.pose.position.y = data_.y; 
-            sendPose_.pose.position.z = data_.z;  
+            sendPose_.pose.position.x = currPosition[0]; 
+            sendPose_.pose.position.y = currPosition[1]; 
+            sendPose_.pose.position.z = currPosition[2];  
             sendPose_.pose.orientation.w = 1.0; 
             sendPose_.pose.orientation.x = 0.0; 
             sendPose_.pose.orientation.y = 0.0; 
             sendPose_.pose.orientation.z = 0.0;
-            lockLeica_.unlock();
 
             pub_.publish(sendPose_); 
         }else{
-            lockLeica_.lock();
             sendPoint_.header.stamp = ros::Time::now();
-            sendPoint_.point.x = data_.x; 
-            sendPoint_.point.y = data_.y; 
-            sendPoint_.point.z = data_.z; 
-            lockLeica_.unlock();
+            sendPoint_.point.x = currPosition[0];
+            sendPoint_.point.y = currPosition[1];
+            sendPoint_.point.z = currPosition[2];
 
             pub_.publish(sendPoint_); 
         }
@@ -160,4 +201,9 @@ void StateMachine::leicaListenCallback(){
 
         rate.sleep();
     }   
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+float StateMachine::deg2Rad(float _deg){
+    return _deg * (3.141592653589793238463 / 180.0);
 }
