@@ -96,14 +96,21 @@ bool StateMachine::run() {
 
         Eigen::Vector3f currPosition = Eigen::Vector3f(rotPosition[0] , rotPosition[1] , rotPosition[2]);
 
-        Eigen::Matrix3f rot = Eigen::AngleAxisf(deg2Rad(xRot_), Eigen::Vector3f::UnitX()).matrix();
-        currPosition = rot * currPosition;
+        Eigen::Matrix3f rot;
+        if(xRot_ != 0){
+            rot = Eigen::AngleAxisf(deg2Rad(xRot_), Eigen::Vector3f::UnitX()).matrix();
+            currPosition = rot * currPosition;
+        }
 
-        rot = Eigen::AngleAxisf(deg2Rad(yRot_), Eigen::Vector3f::UnitY()).matrix();
-        currPosition = rot * currPosition;
+        if(yRot_ != 0){
+            rot = Eigen::AngleAxisf(deg2Rad(yRot_), Eigen::Vector3f::UnitY()).matrix();
+            currPosition = rot * currPosition;
+        }
 
-        rot = Eigen::AngleAxisf(deg2Rad(zRot_), Eigen::Vector3f::UnitZ()).matrix();
-        currPosition = rot * currPosition;
+        if(zRot_ != 0){
+            rot = Eigen::AngleAxisf(deg2Rad(zRot_), Eigen::Vector3f::UnitZ()).matrix();
+            currPosition = rot * currPosition;          
+        }
 
         if(typeTopic_ == 1){
             sendPose_.header.stamp = ros::Time::now();
